@@ -1,17 +1,30 @@
-from collections import deque
+import time
 
 class Node:
-    def __init__(self, state, color='white', parent=None):
+    """
+    Classe que representa o no.
+    """
+    def __init__(self, state):
+        """
+        Metodo construtor da classe Node.
+        """
         self.state = state
-        self.parent = parent
-        self.color = color
-        self.adjacent = []
+        self.neighbors = []
+        self.visited_right = False
+        self.visited_left = False
+        self.parent_right = None
+        self.parent_left = None
     
-    def add_adjacent(self, node):
-        self.adjacent.append(node)
+    def add_neighbor(self, node):
+        """
+        Metodo que adiciona um node adjacente.
+        """
+        self.neighbors.append(node)
     
-    # Funcao que retorna os estados vizinhos
     def neighboring_states(self):
+        """
+        Metodo que retorna os estados dos nos vizinhos. Dessa forma os nos sao criados no momento da execusao do algoritmo, otimizando a busca.
+        """
         index = self.state.index(0)
 
         if index == 0:
@@ -35,11 +48,17 @@ class Node:
             return [self.move(movement) for movement in ['up', 'left']]
     
     def state_as_string(self):
+        """
+        Metodo que retorna o estado do no como uma string.
+        """
         new_state = [str(element) for element in self.state]
 
         return ''.join(new_state)
     
     def __repr__(self):
+        """
+        Sobrescrita do metodo __repr__.
+        """
         representantion = ''
 
         for i in range(3):
@@ -53,8 +72,10 @@ class Node:
 
         return representantion
     
-    # Funcao que retornar o estado apos o movimento
     def move(self, movement):
+        """
+        Metodo que retorna o estado apos o movimento.
+        """
         index = self.state.index(0)
 
         new_state = self.state.copy()
@@ -76,6 +97,8 @@ class Graph:
         self.initial_state = initial_state
         self.final_state = [1, 2, 3, 8, 0, 4, 7, 6, 5]
         self.nodes = {}
+        self.add_node(self.initial_state)
+        self.add_node(self.final_state)
 
     def state_as_string(self, state):
         new_state = [str(element) for element in state]
@@ -85,14 +108,12 @@ class Graph:
     def add_node(self, state):
         state_as_string = self.state_as_string(state)
 
-        if self.nodes.get(state_as_string):
-            return self.nodes.get(state_as_string)
-        else:
+        if not self.nodes.get(state_as_string):
             node = Node(state)
 
             self.nodes[state_as_string] = node
 
-            return node
+        return self.nodes.get(state_as_string)
     
     def add_edge(self, state1, state2):
         state_1_as_string = self.state_as_string(state1)
@@ -106,59 +127,92 @@ class Graph:
 
         node_2 = self.nodes.get(state_2_as_string)
 
-        node_1.add_adjacent(node_2)
+        node_1.add_neighbor(node_2)
 
-        node_2.add_adjacent(node_1)
+        node_2.add_neighbor(node_1)
 
         return True
     
-    def is_intersecting(self, node1, node2):
-        return self.state_as_string(node1.next.state) == self.state_as_string(node2) and self.state_as_string(node2.next.state) == self.state_as_string(node1)
+    def get_node(self, state):
+        return self.nodes.get(self.state_as_string(state))
+    
+    def is_intersecting(self, node):
+        return node.visited_left and node.visited_right
     
     def bidirectional_search(self):
-        initial_node = self.nodes(self.initial_state)
+        print('Busca bidirecional inicializada')
 
-        final_node = self.nodes(self.final_state)
+        begin = time.time()
 
-        self.breadth_first_search(initial_node)
+        initial_node = self.get_node(self.initial_state)
 
-        self.breadth_first_search(final_node)
+        final_node = self.get_node(self.final_state)
 
-    def breadth_first_search(self, node):
-        has_intersecting = False
+        queue = [initial_node, final_node]
 
-        root = node
-
-        root.color = 'gray'
-
-        q = deque()
+        initial_node.visited_right = True
+        
+        final_node.visited_left = True
     
-        q.append(root)
+        while queue:
+            node = queue.pop(0)
 
-        while len(q) > 0 and not has_intersecting:
-            u = q.popleft()
+            if self.is_intersecting(node):
+                end = time.time()
 
-            states = u.neighboring_states()
+                print(f'Busca bidirecional finalizada com sucesso em {round(end - begin, 6)} segundos')
+                
+                return self.get_path(node)
+            else:
+                states = node.neighboring_states()
 
-            adjacent = [self.add_node(state) for state in states]
+                neighbors = [self.add_node(state) for state in states]
 
-            for adjacent_node in adjacent:
-                self.add_edge(u, adjacent_node)
-            
-            for adjacent_node in adjacent:
-                if adjacent_node.color == 'white':
-                    adjacent_node.color = 'gray'
-                    adjacent_node.parent = u
+                for neighbor in neighbors:
 
-                    q.append(adjacent_node)
+                    if node.visited_left and not neighbor.visited_left:
+                        neighbor.parent_left = node
+                        neighbor.visited_left = True
+                        queue.append(neighbor)
 
-            u.color = 'black'
+                    if node.visited_right and not neighbor.visited_right:
+                        neighbor.parent_right = node
+                        neighbor.visited_right = True
+                        queue.append(neighbor)
+        
+        print(f'Busca bidirecional finalizada sem encontrar um caminho em {round(end - begin, 6)} segundos')
+        
+    def get_path(self, node):
+        copy_node = node
+
+        path = []
+
+        while node:
+            path.append(node)
+
+            node = node.parent_right
+
+        path.reverse()
+
+        del path[-1]
+
+        while copy_node:
+            path.append(copy_node)
+
+            copy_node = copy_node.parent_left
+        
+        path_as_string = 'Caminho das jogadas\n#####\n'
+
+        for i in range(len(path)):
+            path_as_string += f'Jogada {i + 1}\n' + str(path[i])
+
+            if i < len(path) - 1:
+                path_as_string += '\n#####\n'
+        
+        return path_as_string
     
-node = Node([1, 2, 3, 8, 0, 4, 7, 6, 5])
+graph = Graph([2, 0, 3, 1, 7, 4, 6, 8, 5])
 
-print(node.neighboring_states())
-
-print(node)
-print(node.state_as_string())
+print(graph.bidirectional_search())
 
         
