@@ -465,8 +465,6 @@ def user_input():
 def main():
     initial = user_input()
 
-    print(initial)
-
     graph = Graph(initial)
 
     print('Busca bidirecional iniciada')
