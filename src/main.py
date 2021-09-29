@@ -268,6 +268,12 @@ class Graph:
                         queue.append(neighbor)
 
                         visited_nodes.append(neighbor)
+        
+        end = time.time()
+
+        method_time = end - begin
+
+        self.add_result('Busca bidirecional', method_time, [], visited_nodes)
 
         return False
     
@@ -302,7 +308,7 @@ class Graph:
 
         current = border.pop(0)
 
-        while not current == final_node:
+        while current and not current == final_node:
             neighbors = []
 
             for state in current.neighboring_states():
@@ -367,11 +373,113 @@ class Result:
         
         return result_as_string
 
+def convert_string_in_numbers_array(input_as_string):
+    input_as_array = input_as_string.split(' ')
+
+    converted_input = []
+
+    for element in input_as_array:
+        try:
+            converted_input.append(int(element))
+        except:
+            return False, []
+        
+    return True, converted_input
+
+def user_input():
+    validated_input = False
+
+    initial = []
+
+    while not validated_input:
+        print('Entre com o estao inicial no seguinte formato:')
+        print('Linha 1: 2 0 3')
+        print('Linha 2: 1 7 4')
+        print('Linha 3: 6 8 5')
+        print()
+
+        data1_as_string = input('Linha 1: ')
+        data2_as_string = input('Linha 2: ')
+        data3_as_string = input('Linha 3: ')
+        print()
+
+        all_int, data1_as_array = convert_string_in_numbers_array(data1_as_string)
+
+        message_all_int = 'Todos numeros devem ser inteiros'
+
+        if not all_int:
+            print(message_all_int)
+            continue
+
+        all_int, data2_as_array = convert_string_in_numbers_array(data2_as_string)
+        
+        if not all_int:
+            print(message_all_int)
+            continue
+
+        all_int, data3_as_array = convert_string_in_numbers_array(data3_as_string)
+
+        if not all_int:
+            print(message_all_int)
+            continue
+
+        duplicate = False
+
+        for i in range(len(data1_as_array)):
+            for j in range(len(data1_as_array)):
+                for k in range(len(data1_as_array)):
+                    if data1_as_array[i] == data2_as_array[j] or data2_as_array[j] == data3_as_array[k]:
+                        duplicate = True
+        
+        if duplicate:
+            print('Nao deve ter numeros duplicados')
+            continue
+
+        if len(data1_as_array) + len(data2_as_array) + len(data3_as_array) != 9:
+            print('Deve ter 9 numeros')
+            continue
+
+        initial.extend(data1_as_array)
+
+        initial.extend(data2_as_array)
+        
+        initial.extend(data3_as_array)
+
+        out_of_range = False
+
+        for element in initial:
+            if not (element >= 0 and element <= 8):
+                out_of_range = True
+
+        if out_of_range:    
+            initial = []
+            
+            print('Os numeros devem estar entre 0 e 8.')
+
+            continue
+
+        validated_input = True
+    
+    return initial
+
 def main():
-    graph = Graph([2, 0, 3, 1, 7, 4, 6, 8, 5])
+    initial = user_input()
+
+    print(initial)
+
+    graph = Graph(initial)
+
+    print('Busca bidirecional iniciada')
 
     graph.bidirectional_search()
+
+    print('Busca bidirecional finalizada')
+
+    print('Busca a-estrela iniciada')
+    
     graph.a_start()
+
+    print('Busca a-estrela finalizada')
 
     time_result = datetime.now()
 
